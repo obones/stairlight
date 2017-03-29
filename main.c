@@ -10,6 +10,7 @@
 #include "mcc_generated_files/mcc.h"
 #define Light_On Light_SetHigh
 #define Light_Off Light_SetLow
+#define Light_IsOn (Light_GetValue() == 1)
 
 volatile int32_t elapsedHalfSeconds = 0;
 volatile int32_t maxHalfSeconds = 60;
@@ -47,30 +48,34 @@ void main(void) {
     
     while(1)
     {
-        // Don't go to sleep, the timer would not work during
-        // that time and thus lights would never go out
-        /*SLEEP();
-        __nop();*/
+        SLEEP();
+        __nop();
         
-        if (mainVibrationDetected)
+        do
         {
-            mainVibrationDetected = false;
-            
-            int32_t initialHalfSeconds = elapsedHalfSeconds; 
-            bool vibration1Occurred = false;
-            bool darknessOK = false;
-            while (elapsedHalfSeconds == initialHalfSeconds)
+            if (mainVibrationDetected)
             {
-                vibration1Occurred = vibration1Occurred || !Vibration1_GetValue();
-                darknessOK = darknessOK || Darkness_GetValue();
-                
-                if (vibration1Occurred && darknessOK)
+                mainVibrationDetected = false;
+
+                int32_t initialHalfSeconds = elapsedHalfSeconds; 
+                bool vibration1Occurred = false;
+                bool darknessOK = false;
+                while (elapsedHalfSeconds == initialHalfSeconds)
                 {
-                    maxHalfSeconds = GetUserLightDuration();
-                    Light_On();
+                    vibration1Occurred = vibration1Occurred || !Vibration1_GetValue();
+                    darknessOK = darknessOK || Darkness_GetValue();
+
+                    if (vibration1Occurred && darknessOK)
+                    {
+                        maxHalfSeconds = GetUserLightDuration();
+                        Light_On();
+                    }
                 }
             }
-        }
+        } 
+        while (Light_IsOn); 
+        // Don't go to sleep while light is on, the timer would not work during
+        // that time and thus lights would never go out
     }
     
     return;
